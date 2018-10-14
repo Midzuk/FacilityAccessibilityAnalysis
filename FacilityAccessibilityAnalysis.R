@@ -2,9 +2,11 @@ library(tidyverse)
 library(dplyr)
 library(magrittr)
 
-data <- read_csv("ignore/input/data.csv")
+# ’²¸Œ‹‰Ê
 
-data %<>%
+data0 <- read_csv("ignore/input/data.csv")
+
+data <- data0 %>%
   rename(sample_id = "SAMPLEID",
          facility_use = "Q2",
          income = "Q23",
@@ -28,10 +30,22 @@ data %<>%
          child = child - 1,
          one_line_distance = one_line_distance * 1000)
 
-dist_data <- read_csv("ignore/input/rawdata_distance.csv")
 
-dist_data %<>%
+
+# ‹——£î•ñ
+
+dist_data0 <- read_csv("ignore/input/rawdata_distance.csv")
+
+dist_data <- dist_data0 %>%
   mutate(distance = dist_link + dist_org *0 + dist_dest *0)
+
+
+
+# 1kmƒƒbƒVƒ…lŒû
+
+
+
+
 
 data %<>%
   left_join(dist_data, by = "sample_id") %>%
