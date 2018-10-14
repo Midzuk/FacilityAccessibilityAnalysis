@@ -88,10 +88,12 @@ summary(result)
 # predict(result, type = "response")
 
 data1 <- data %>%
-  mutate(dist_ratio = one_line_distance / distance) # distance / one_line_distance)
+  mutate(dist_ratio = distance / one_line_distance)
   # filter(one_line_distance >= 500)
   
 
 g <- ggplot()
-g <- g + geom_point(data = data1, aes(x = data1$one_line_distance, y = data1$dist_ratio))
+g <- g +
+  geom_point(data = data1, aes(x = data1$one_line_distance, y = data1$dist_ratio)) +
+  geom_hline(yintercept = 1)
 
