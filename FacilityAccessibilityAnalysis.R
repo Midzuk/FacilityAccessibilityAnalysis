@@ -1,8 +1,9 @@
 library(tidyverse)
 library(dplyr)
 library(magrittr)
+library(readr)
 
-# ’²¸Œ‹‰Ê
+# questionnaire
 
 data0 <- read_csv("ignore/input/data.csv")
 
@@ -32,26 +33,65 @@ data <- data0 %>%
 
 
 
-# ‹——£î•ñ
+# distance
 
-dist_data0 <- read_csv("ignore/input/rawdata_distance.csv")
+dist0 <- read_csv("ignore/input/rawdata_distance.csv")
 
-dist_data <- dist_data0 %>%
-  mutate(distance = dist_link + dist_org *0 + dist_dest *0)
-
-
-
-# 1kmƒƒbƒVƒ…lŒû
+dist <- dist0 %>%
+  mutate(distance = dist_link + dist_org * 1 + dist_dest * 1) %>%
+  select(sample_id, distance)
 
 
 
+# 1km mesh population
+
+mesh0 <- read_csv("ignore/input/mesh.csv")
+
+mesh <- mesh0 %>%
+  select(sample_id, third_order_mesh_code) %>%
+  rename(mesh_code = "third_order_mesh_code")
+
+pop <- read_csv("ignore/input/pop2015_1km.csv",
+                col_types = cols(population0_14 = col_integer())) %>%
+  select(mesh_code, population)
+
+mesh_pop <- mesh %>%
+  left_join(pop, by = "mesh_code")
 
 
 data %<>%
-  left_join(dist_data, by = "sample_id") %>%
-  filter(!is.na(income) & !is.na(distance))
+  left_join(dist, by = "sample_id")
 
-result <- glm(facility_use ~ distance + income + sex, data, family = binomial(link = "logit"))
+data %<>%
+  left_join(mesh_pop, by = "sample_id") %>%
+  filter(!is.na(income) & !is.na(distance) & !is.na(population))
+
+
+
+#DID (assuming >=4000people/km2)
+
+data_did <- data %>%
+  filter(population >= 4000)
+
+
+
+#notDID (assuming <4000people/km2)
+
+data_notdid <- data %>%
+  filter(population < 4000)
+
+
+
+result <- glm(facility_use ~ distance + sex, data_notdid, family = binomial(link = "logit"))
 summary(result)
-predict(result, type = "response")
+
+# predict(result, type = "response")
+
+data1 <- data %>%
+  mutate(dist_ratio = one_line_distance / distance) # distance / one_line_distance)
+  # filter(one_line_distance >= 500)
+  
+
+g <- ggplot()
+g <- g + geom_point(data = data1, aes(x = data1$one_line_distance, y = data1$dist_ratio))
 
