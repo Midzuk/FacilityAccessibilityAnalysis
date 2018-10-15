@@ -101,15 +101,23 @@ summary(result)
 # predict(result, type = "response")
 
 ques1 <- ques %>%
+   #mutate(dist_ratio = - log((distance - one_line_distance) / one_line_distance))
   mutate(dist_ratio = 1 / ((distance - one_line_distance) / one_line_distance))
   # filter(one_line_distance >= 500)
 
+result2 <- lm(log(dist_ratio) ~ log(one_line_distance) + log(population), ques1)
+summary(result2)
+
 g <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio, colour = ques1$population)) +
   labs(x = "one_line_distance", y = "ratio") +
-  geom_point(size = 1) +
-  scale_color_gradientn(colours=c("forestgreen", "yellow", "red", "red1", "red2"))
+  xlim(0, 5000) +
+  ylim(0, 10) +
+  geom_point(size = 1.5) +
+  scale_color_gradientn(colours=c("forestgreen", "yellow", "red", "red1", "red2")) +
+  geom_abline(intercept = 1.619e+00, slope = 9.250e-04)
   # scale_color_gradient2(midpoint=mean(ques1$population), low="blue", mid="violet",
   #                          high="red", space ="Lab" )
   # scale_colour_gradientn(low="blue", high="red")
   # geom_hline(yintercept = 0)
+
 
