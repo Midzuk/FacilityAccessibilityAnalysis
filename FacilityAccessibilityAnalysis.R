@@ -91,7 +91,7 @@ ques %<>%
 
 #DID
 
-ques_did_mean <- ques %>%
+ques_did_mean <- ques %>% 
   group_by(DID) %>%
   summarise(mean(facility_use))
   
