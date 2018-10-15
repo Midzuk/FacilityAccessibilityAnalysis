@@ -3,25 +3,38 @@ library(dplyr)
 library(magrittr)
 library(readr)
 
+# grtCirDist <- function(lat1, lon1, lat2, lon2) {
+#  6378137 * acos(sin(lat1 * pi / 180) * sin(lat2 * pi / 180) + cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * cos(lon1 * pi / 180 - lon2 * pi /180))
+#}
+
+
+
 # questionnaire
 
-data0 <- read_csv("ignore/input/data.csv")
+ques0 <- read_csv("ignore/input/data.csv")
 
-data <- data0 %>%
+ques <- data0 %>%
   rename(sample_id = "SAMPLEID",
          facility_use = "Q2",
          income = "Q23",
          sex = "SEX",
          age = "AGE",
          child = "CHILD",
-         one_line_distance = "DISTANCE1") %>%
+         # one_line_distance = "DISTANCE1",
+         lat1 = "LAT1",
+         lon1 = "LON1",
+         lat2 = "LAT2",
+         lon2 = "LON2") %>%
   select(sample_id,
          facility_use,
          income,
          sex,
          age,
          child,
-         one_line_distance) %>%
+         lat1,
+         lon1,
+         lat2,
+         lon2) %>%
   mutate(facility_use = case_when(facility_use == 2 ~ 0,
                                   facility_use == 1 ~ 1),
          income = case_when(income >= 1 & income <= 10 ~ income * 1000000 - 500000,
@@ -29,7 +42,7 @@ data <- data0 %>%
                             income == 12 ~ 17500000),
          sex = sex - 1,
          child = child - 1,
-         one_line_distance = one_line_distance * 1000)
+         one_line_distance = 6378137 * acos(sin(lat1 * pi / 180) * sin(lat2 * pi / 180) + cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * cos(lon1 * pi / 180 - lon2 * pi /180)))
 
 
 
@@ -59,41 +72,44 @@ mesh_pop <- mesh %>%
   left_join(pop, by = "mesh_code")
 
 
-data %<>%
+ques %<>%
   left_join(dist, by = "sample_id")
 
-data %<>%
+ques %<>%
   left_join(mesh_pop, by = "sample_id") %>%
-  filter(!is.na(income) & !is.na(distance) & !is.na(population))
+  filter(!is.na(income) & !is.na(distance) & !is.na(population) & !is.na(one_line_distance))
 
 
 
 #DID (assuming >=4000people/km2)
 
-data_did <- data %>%
+ques_did <- data %>%
   filter(population >= 4000)
 
 
 
 #notDID (assuming <4000people/km2)
 
-data_notdid <- data %>%
+ques_notdid <- data %>%
   filter(population < 4000)
 
 
 
-result <- glm(facility_use ~ distance + sex, data_notdid, family = binomial(link = "logit"))
+result <- glm(facility_use ~ distance + sex, ques_notdid, family = binomial(link = "logit"))
 summary(result)
 
 # predict(result, type = "response")
 
-data1 <- data %>%
-  mutate(dist_ratio = distance / one_line_distance)
+ques1 <- ques %>%
+  mutate(dist_ratio = 1 / ((distance - one_line_distance) / one_line_distance))
   # filter(one_line_distance >= 500)
-  
 
-g <- ggplot()
-g <- g +
-  geom_point(data = data1, aes(x = data1$one_line_distance, y = data1$dist_ratio)) +
-  geom_hline(yintercept = 1)
+g <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio, colour = ques1$population)) +
+  labs(x = "one_line_distance", y = "ratio") +
+  geom_point(size = 1) +
+  scale_color_gradientn(colours=c("forestgreen", "yellow", "red", "red1", "red2"))
+  # scale_color_gradient2(midpoint=mean(ques1$population), low="blue", mid="violet",
+  #                          high="red", space ="Lab" )
+  # scale_colour_gradientn(low="blue", high="red")
+  # geom_hline(yintercept = 0)
 
