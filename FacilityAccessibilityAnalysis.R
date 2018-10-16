@@ -44,8 +44,6 @@ ques <- ques0 %>%
          child = child - 1,
          one_line_distance = 6378137 * acos(sin(lat1 * pi / 180) * sin(lat2 * pi / 180) + cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * cos(lon1 * pi / 180 - lon2 * pi /180)))
 
-
-
 # distance
 
 dist0 <- read_csv("ignore/input/rawdata_distance.csv")
@@ -75,25 +73,27 @@ mesh_pop <- mesh %>%
 ques %<>%
   left_join(dist, by = "sample_id")
 
-ques %<>%
+ques_pop <- ques %<>%
   left_join(mesh_pop, by = "sample_id") %>%
-  filter(!is.na(income) & !is.na(distance) & !is.na(population) & !is.na(one_line_distance)) %>%
+  filter(!is.na(population)) %>% # !is.na(income) & !is.na(distance) & !is.na(population) & !is.na(one_line_distance)) %>%
   mutate(DID = if_else(population >= 4000, TRUE, FALSE))
-
-
-
-#DID (assuming >=4000people/km2)
-#ques_did <- data %>%
-#  filter(population >= 4000)
-#notDID (assuming <4000people/km2)
-#ques_notdid <- data %>%
-#  filter(population < 4000)
-
-#DID
 
 ques_did_mean <- ques %>% 
   group_by(DID) %>%
-  summarise(mean(facility_use))
+  summarise(mean(facility_use), n())
+
+
+#DID (assuming >=4000people/km2)
+ques_did <- ques %>%
+  filter(population >= 4000)
+#notDID (assuming <4000people/km2)
+ques_notdid <- ques %>%
+  filter(population < 4000)
+
+t.test(ques_did$facility_use, ques_notdid$facility_use, var.equal = F)
+
+#DID
+
   
 #facility_use_did <- ggplot(data = ques_did_mean, aes(x = DID, y = mean(facility_use))) +
 #  geom_bar(stat = "identity") +
@@ -101,31 +101,55 @@ ques_did_mean <- ques %>%
   
 
 # welch t
-t.test(ques_did$facility_use, ques_did$facility_use, var.equal = F, paired = F)
+# t.test(ques_did$facility_use, ques_did$facility_use, var.equal = F, paired = F)
 
-result <- glm(facility_use ~ distance + sex, ques_notdid, family = binomial(link = "logit"))
-summary(result)
+# result <- glm(facility_use ~ distance + sex, ques_notdid, family = binomial(link = "logit"))
+# summary(result)
 
 # predict(result, type = "response")
 
 
 
 
+ques %<>%
+  filter(!is.na(income) & !is.na(distance) & !is.na(one_line_distance))
+ques_did %<>%
+  filter(!is.na(income) & !is.na(distance) & !is.na(one_line_distance))
+ques_notdid %<>%
+  filter(!is.na(income) & !is.na(distance) & !is.na(one_line_distance))
+
+result <- glm(facility_use ~ distance + sex + income, ques, family = binomial(link = "logit"))
+summary(result)
+
+result_did <- glm(facility_use ~ one_line_distance + sex + income, ques_did, family = binomial(link = "logit"))
+summary(result_did)
+
+result_notdid <- glm(facility_use ~ one_line_distance + sex + income, ques_notdid, family = binomial(link = "logit"))
+summary(result_notdid)
 
 
-
+ques_col <- ques %>%
+  select(one_line_distance, sex, income)
+cor(ques_col, method="spearman")
 
 
 ques1 <- ques %>%
    #mutate(dist_ratio = - log((distance - one_line_distance) / one_line_distance))
-  mutate(dist_ratio = 1 / ((distance - one_line_distance) / one_line_distance))
+  mutate(dist_ratio = (distance - one_line_distance) / one_line_distance)
   # filter(one_line_distance >= 500)
 
 # result2 <- lm(log(dist_ratio) ~ 1 * log(one_line_distance) + log(population), ques1)
 # summary(result2)
 
-g <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio, colour = ques1$population)) +
-  labs(x = "one_line_distance", y = "ratio") +
+#g0 <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$distance, colour = population)) +
+#  labs(x = "直線距離 (m)", y = "移動距離 (m)") +
+#  xlim(0, 5000) +
+#  ylim(0, 5000) +
+#  geom_point(size = 1.5) +
+#  scale_color_gradientn(colours=c("forestgreen", "yellow", "red", "red1", "red2"))
+
+g <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio, colour = population)) +
+    labs(x = "直線距離 (m)", y = "直線距離に対する移動距離と直線距離の差の比") +
   xlim(0, 5000) +
   ylim(0, 10) +
   geom_point(size = 1.5) +
@@ -137,17 +161,20 @@ g <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio,
   # geom_hline(yintercept = 0)
 
 ques2 <- ques1 %>%
-  mutate(dist_ratio2 = dist_ratio / one_line_distance)
+  mutate(dist_ratio2 = 1 / dist_ratio)
 
-g1 <- ggplot(data = ques2, aes(x = ques2$one_line_distance, y = ques2$dist_ratio2, colour = ques2$population)) +
-  labs(x = "one_line_distance", y = "ratio") +
+g1 <- ggplot(data = ques2, aes(x = ques2$one_line_distance, y = ques2$dist_ratio2, colour = population)) +
+  labs(x = "直線距離", y = "直線距離に対する移動距離と直線距離の差の比の逆数") +
   xlim(0, 5000) +
-  ylim(0, 0.01) +
+  ylim(0, 10) +
   geom_point(size = 1.5) +
-  scale_color_gradientn(colours=c("forestgreen", "yellow", "red", "red1", "red2")) +
-  geom_abline(intercept = 1.619e+00, slope = 9.250e-04)
+  scale_color_gradientn(colours=c("forestgreen", "yellow", "red", "red1", "red2"))
+  # geom_abline(intercept = 1.619e+00, slope = 9.250e-04)
 
-result3 <- lm(dist_ratio2 ~ population, ques2)
+ques2 %<>%
+  filter(distance > 0, one_line_distance > 0, population > 0)
+
+result3 <- lm(distance ~ one_line_distance + population, ques2)
 summary(result3)
 
 
