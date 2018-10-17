@@ -148,7 +148,27 @@ ques1 <- ques %>%
 #  geom_point(size = 1.5) +
 #  scale_color_gradientn(colours=c("forestgreen", "yellow", "red", "red1", "red2"))
 
-g <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio, colour = population)) +
+ques2_1 <- ques %>%
+  mutate(dist_id = round(one_line_distance/100)) %>%
+  group_by(dist_id) %>%
+  summarise(mean(facility_use), n(), sum(facility_use)) %>%
+  rename(use = "sum(facility_use)",
+         num = "n()") %>%
+  mutate(dont_use = num - use) %>%
+  gather(key = "use", value = "num1",
+         "use", "dont_use")
+
+
+
+g_ques2 <- ggplot(data = ques2_1, aes(x = ques2_1$dist_id, y = ques2_1$num1, fill = use)) +
+  xlim(0,20) +
+  ylim(0, 60) +
+  geom_bar(stat = "identity") +
+  # geom_bar(stat = "identity", position = "fill") +
+  labs(x = "直線距離 (100m)", y = "回答者数 (人)")
+
+
+gg <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio, colour = population)) +
     labs(x = "直線距離 (m)", y = "直線距離に対する移動距離と直線距離の差の比") +
   xlim(0, 5000) +
   ylim(0, 10) +
