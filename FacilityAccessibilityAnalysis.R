@@ -128,6 +128,20 @@ result_notdid <- glm(facility_use ~ one_line_distance + sex + income, ques_notdi
 summary(result_notdid)
 
 
+ques1000 <- ques %>%
+  filter(one_line_distance <= 1000)
+
+result <- glm(facility_use ~ distance + sex + income, ques1000, family = binomial(link = "logit"))
+summary(result)
+
+grubbs
+
+
+
+
+
+
+
 ques_col <- ques %>%
   select(one_line_distance, sex, income)
 cor(ques_col, method="spearman")
@@ -168,6 +182,28 @@ g_ques2 <- ggplot(data = ques2_1, aes(x = ques2_1$dist_id, y = ques2_1$num1, fil
   labs(x = "直線距離 (100m)", y = "回答者数 (人)")
 
 
+ques2_income <- ques %>%
+  mutate(income_id = round(income/1000000)) %>%
+  group_by(income_id) %>%
+  summarise(mean(facility_use), n(), sum(facility_use)) %>%
+  rename(use = "sum(facility_use)",
+         num = "n()") %>%
+  mutate(dont_use = num - use) %>%
+  gather(key = "use", value = "num1",
+         "use", "dont_use")
+
+g_ques_in <- ggplot(data = ques2_income, aes(x = ques2_income$income_id, y = ques2_income$num1, fill = use)) +
+  xlim(0,20) +
+  # ylim(0, 60) +
+  geom_bar(stat = "identity", position = "fill") +
+  # geom_bar(stat = "identity", position = "fill") +
+  labs(x = "所得 (百万円)", y = "学校開放利用率")
+
+
+
+
+
+
 gg <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio, colour = population)) +
     labs(x = "直線距離 (m)", y = "直線距離に対する移動距離と直線距離の差の比") +
   xlim(0, 5000) +
@@ -179,6 +215,27 @@ gg <- ggplot(data = ques1, aes(x = ques1$one_line_distance, y = ques1$dist_ratio
   #                          high="red", space ="Lab" )
   # scale_colour_gradientn(low="blue", high="red")
   # geom_hline(yintercept = 0)
+
+ques_sex <- ques %>%
+  group_by(sex) %>%
+  summarise(mean(facility_use), n(), sum(facility_use)) %>%
+  rename(use = "sum(facility_use)",
+         num = "n()") %>%
+  mutate(dont_use = num - use) %>%
+  gather(key = "use", value = "num1",
+         "use", "dont_use")
+
+g_ques_sex <- ggplot(data = ques_sex, aes(x = ques_sex$sex, y = ques_sex$num1, fill = use)) +
+  # xlim(0,20) +
+  # ylim(0, 60) +
+  geom_bar(stat = "identity", position = "fill") +
+  # geom_bar(stat = "identity", position = "fill") +
+  labs(x = "性別", y = "回答者数 (人)")
+
+
+
+
+
 
 ques2 <- ques1 %>%
   mutate(dist_ratio2 = 1 / dist_ratio)
